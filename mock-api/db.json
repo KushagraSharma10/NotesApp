@@ -1,0 +1,41 @@
+{
+  "notes": [
+    {
+      "id": "1",
+      "title": "React Native Revision",
+      "description": "Core components, styling, lists, forms and feedback states needs to revise",
+      "createdAt": "2026-04-13 09:30 PM"
+    },
+    {
+      "id": "2",
+      "title": "Workout Plan",
+      "description": "Butterfly, shoulder machine, back pulls and treadmill.",
+      "createdAt": "2026-04-13 08:10 PM"
+    },
+    {
+      "id": "3",
+      "title": "Shopping List",
+      "description": "Milk, bread, fruits and peanut butter.",
+      "createdAt": "2026-04-13 07:05 PM"
+    },
+    {
+      "title": "asds",
+      "description": "asdas",
+      "createdAt": "4/13/2026, 11:38:44 PM",
+      "id": "zwKFuQR0UHE"
+    },
+    {
+      "title": "Random 123",
+      "description": "Adding this note for tommorrow",
+      "createdAt": "4/13/2026, 11:42:15 PM",
+      "id": "c8oZIf-aB3c"
+    },
+    {
+      "title": "Note 2",
+      "description": "Note 3",
+      "createdAt": "4/13/2026, 11:52:44 PM",
+      "id": "cueRxgJydBY"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}

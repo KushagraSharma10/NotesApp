@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,54 +8,28 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import useNoteActions from '../../hooks/useNoteActions';
-import { notesService } from '../../services/notesService';
-import { NoteItem, NotesStackParamList } from '../../types/navigationTypes';
+import useNotesContext from '../../hooks/useNotesContext';
+import { NotesStackParamList } from '../../types/navigationTypes';
 
 type Props = NativeStackScreenProps<NotesStackParamList, 'NoteDetails'>;
 
 export default function NoteDetailsScreen({ route, navigation }: Props) {
   const { noteId } = route.params;
 
-  const [selectedNoteItem, setSelectedNoteItem] = useState<NoteItem | null>(null);
-  const [isLoadingNoteDetails, setIsLoadingNoteDetails] = useState(true);
-  const [noteDetailsErrorMessage, setNoteDetailsErrorMessage] = useState('');
-
   const {
+    notesList,
+    isLoadingNotes,
+    notesErrorMessage,
     deleteNote,
-    isProcessingNoteAction,
-    noteActionErrorMessage,
-    resetNoteActionErrorMessage,
-  } = useNoteActions();
+  } = useNotesContext();
 
-  const loadSelectedNote = useCallback(async () => {
-    try {
-      setIsLoadingNoteDetails(true);
-      setNoteDetailsErrorMessage('');
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
+  const [actionErrorMessage, setActionErrorMessage] = useState('');
 
-      const noteResponse = await notesService.getNoteById(noteId);
-
-      if (!noteResponse) {
-        setNoteDetailsErrorMessage('Note not found.');
-        setSelectedNoteItem(null);
-        return;
-      }
-
-      setSelectedNoteItem(noteResponse);
-    } catch (error) {
-      setNoteDetailsErrorMessage('Unable to load note details.');
-    } finally {
-      setIsLoadingNoteDetails(false);
-    }
-  }, [noteId]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      loadSelectedNote();
-    }, [loadSelectedNote]),
-  );
+  const selectedNoteItem = useMemo(() => {
+    return notesList.find((singleNoteItem) => singleNoteItem.id === noteId) ?? null;
+  }, [notesList, noteId]);
 
   const handleDeleteNote = () => {
     Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
@@ -68,17 +42,21 @@ export default function NoteDetailsScreen({ route, navigation }: Props) {
         style: 'destructive',
         onPress: async () => {
           try {
-            resetNoteActionErrorMessage();
+            setIsDeletingNote(true);
+            setActionErrorMessage('');
             await deleteNote(noteId);
             navigation.navigate('NotesList');
           } catch (error) {
+            setActionErrorMessage('Unable to delete note.');
+          } finally {
+            setIsDeletingNote(false);
           }
         },
       },
     ]);
   };
 
-  if (isLoadingNoteDetails) {
+  if (isLoadingNotes) {
     return (
       <SafeAreaView style={styles.screenContainer}>
         <View style={styles.centerStateContainer}>
@@ -89,16 +67,16 @@ export default function NoteDetailsScreen({ route, navigation }: Props) {
     );
   }
 
-  if (noteDetailsErrorMessage || !selectedNoteItem) {
+  if (notesErrorMessage || !selectedNoteItem) {
     return (
       <SafeAreaView style={styles.screenContainer}>
         <View style={styles.centerStateContainer}>
           <Text style={styles.errorText}>
-            {noteDetailsErrorMessage || 'Note not found.'}
+            {notesErrorMessage || 'Note not found.'}
           </Text>
 
-          <Pressable style={styles.retryButton} onPress={loadSelectedNote}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+          <Pressable style={styles.retryButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -117,11 +95,11 @@ export default function NoteDetailsScreen({ route, navigation }: Props) {
         <Text style={styles.noteDate}>{selectedNoteItem.createdAt}</Text>
       </View>
 
-      {noteActionErrorMessage ? (
-        <Text style={styles.inlineErrorText}>{noteActionErrorMessage}</Text>
+      {actionErrorMessage ? (
+        <Text style={styles.inlineErrorText}>{actionErrorMessage}</Text>
       ) : null}
 
-      {isProcessingNoteAction ? (
+      {isDeletingNote ? (
         <View style={styles.loadingRow}>
           <ActivityIndicator size="small" />
           <Text style={styles.loadingText}>Please wait...</Text>
@@ -136,7 +114,11 @@ export default function NoteDetailsScreen({ route, navigation }: Props) {
           <Text style={styles.buttonText}>Edit Note</Text>
         </Pressable>
 
-        <Pressable style={styles.deleteButton} onPress={handleDeleteNote}>
+        <Pressable
+          style={styles.deleteButton}
+          onPress={handleDeleteNote}
+          disabled={isDeletingNote}
+        >
           <Text style={styles.buttonText}>Delete</Text>
         </Pressable>
       </View>
