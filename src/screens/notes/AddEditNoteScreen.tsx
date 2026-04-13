@@ -11,8 +11,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import useNoteActions from '../../hooks/useNoteActions';
-import { notesService } from '../../services/notesService';
+import useNotesContext from '../../hooks/useNotesContext';
 import { NotesStackParamList } from '../../types/navigationTypes';
 
 type Props = NativeStackScreenProps<NotesStackParamList, 'AddEditNote'>;
@@ -21,45 +20,39 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
   const noteId = route.params?.noteId;
   const isEditMode = useMemo(() => !!noteId, [noteId]);
 
-  const [noteTitleInputValue, setNoteTitleInputValue] = useState('');
-  const [noteDescriptionInputValue, setNoteDescriptionInputValue] = useState('');
-  const [isLoadingInitialNoteData, setIsLoadingInitialNoteData] = useState(isEditMode);
-  const [formValidationErrorMessage, setFormValidationErrorMessage] = useState('');
-
   const {
+    notesList,
+    isLoadingNotes,
     addNote,
     updateNote,
-    isProcessingNoteAction,
-    noteActionErrorMessage,
-    resetNoteActionErrorMessage,
-  } = useNoteActions();
+  } = useNotesContext();
+
+  const selectedNoteItem = useMemo(() => {
+    if (!noteId) {
+      return null;
+    }
+
+    return notesList.find((singleNoteItem) => singleNoteItem.id === noteId) ?? null;
+  }, [notesList, noteId]);
+
+  const [noteTitleInputValue, setNoteTitleInputValue] = useState('');
+  const [noteDescriptionInputValue, setNoteDescriptionInputValue] = useState('');
+  const [formValidationErrorMessage, setFormValidationErrorMessage] = useState('');
+  const [actionErrorMessage, setActionErrorMessage] = useState('');
+  const [isProcessingNoteAction, setIsProcessingNoteAction] = useState(false);
 
   useEffect(() => {
-    const loadEditNoteData = async () => {
-      if (!noteId) {
-        setIsLoadingInitialNoteData(false);
-        return;
-      }
+    if (!isEditMode) {
+      return;
+    }
 
-      try {
-        const noteResponse = await notesService.getNoteById(noteId);
+    if (!selectedNoteItem) {
+      return;
+    }
 
-        if (!noteResponse) {
-          setFormValidationErrorMessage('Note not found.');
-          return;
-        }
-
-        setNoteTitleInputValue(noteResponse.title);
-        setNoteDescriptionInputValue(noteResponse.description);
-      } catch (error) {
-        setFormValidationErrorMessage('Unable to load note data.');
-      } finally {
-        setIsLoadingInitialNoteData(false);
-      }
-    };
-
-    loadEditNoteData();
-  }, [noteId]);
+    setNoteTitleInputValue(selectedNoteItem.title);
+    setNoteDescriptionInputValue(selectedNoteItem.description);
+  }, [isEditMode, selectedNoteItem]);
 
   const handleSaveNote = async () => {
     if (!noteTitleInputValue.trim()) {
@@ -68,8 +61,9 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
     }
 
     try {
+      setIsProcessingNoteAction(true);
       setFormValidationErrorMessage('');
-      resetNoteActionErrorMessage();
+      setActionErrorMessage('');
 
       if (isEditMode && noteId) {
         await updateNote(noteId, {
@@ -85,15 +79,30 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
 
       navigation.goBack();
     } catch (error) {
+      setActionErrorMessage(
+        isEditMode ? 'Unable to update note.' : 'Unable to save note.',
+      );
+    } finally {
+      setIsProcessingNoteAction(false);
     }
   };
 
-  if (isLoadingInitialNoteData) {
+  if (isLoadingNotes && isEditMode) {
     return (
       <SafeAreaView style={styles.screenContainer}>
         <View style={styles.centerStateContainer}>
           <ActivityIndicator size="large" />
           <Text style={styles.stateText}>Loading note...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isEditMode && !selectedNoteItem) {
+    return (
+      <SafeAreaView style={styles.screenContainer}>
+        <View style={styles.centerStateContainer}>
+          <Text style={styles.errorText}>Note not found.</Text>
         </View>
       </SafeAreaView>
     );
@@ -115,11 +124,13 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
             value={noteTitleInputValue}
             onChangeText={(updatedTitleValue) => {
               setNoteTitleInputValue(updatedTitleValue);
+
               if (formValidationErrorMessage) {
                 setFormValidationErrorMessage('');
               }
-              if (noteActionErrorMessage) {
-                resetNoteActionErrorMessage();
+
+              if (actionErrorMessage) {
+                setActionErrorMessage('');
               }
             }}
             style={styles.textInputField}
@@ -138,8 +149,8 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
             <Text style={styles.errorText}>{formValidationErrorMessage}</Text>
           ) : null}
 
-          {noteActionErrorMessage ? (
-            <Text style={styles.errorText}>{noteActionErrorMessage}</Text>
+          {actionErrorMessage ? (
+            <Text style={styles.errorText}>{actionErrorMessage}</Text>
           ) : null}
 
           {isProcessingNoteAction ? (

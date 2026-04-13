@@ -15,8 +15,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import useNoteActions from '../../hooks/useNoteActions';
-import useNotesList from '../../hooks/useNotesList';
+import useNotesContext from '../../hooks/useNotesContext';
 import { NoteItem, NotesStackParamList } from '../../types/navigationTypes';
 
 type Props = NativeStackScreenProps<NotesStackParamList, 'NotesList'>;
@@ -27,22 +26,17 @@ export default function NotesListScreen({ navigation }: Props) {
     isLoadingNotes,
     notesErrorMessage,
     successMessageText,
-    refetchNotes,
-    refreshNotesWithoutLoader,
-  } = useNotesList();
-
-  const {
+    fetchNotes,
     addNote,
     deleteNote,
-    isProcessingNoteAction,
-    noteActionErrorMessage,
-    resetNoteActionErrorMessage,
-  } = useNoteActions();
+  } = useNotesContext();
 
   const [isAddNoteModalVisible, setIsAddNoteModalVisible] = useState(false);
   const [noteTitleInputValue, setNoteTitleInputValue] = useState('');
   const [noteDescriptionInputValue, setNoteDescriptionInputValue] = useState('');
   const [formValidationErrorMessage, setFormValidationErrorMessage] = useState('');
+  const [actionErrorMessage, setActionErrorMessage] = useState('');
+  const [isProcessingNoteAction, setIsProcessingNoteAction] = useState(false);
 
   const isSaveButtonDisabled = useMemo(() => {
     return !noteTitleInputValue.trim();
@@ -52,7 +46,7 @@ export default function NotesListScreen({ navigation }: Props) {
     setNoteTitleInputValue('');
     setNoteDescriptionInputValue('');
     setFormValidationErrorMessage('');
-    resetNoteActionErrorMessage();
+    setActionErrorMessage('');
   };
 
   const handleOpenAddNoteModal = () => {
@@ -76,8 +70,9 @@ export default function NotesListScreen({ navigation }: Props) {
     }
 
     try {
+      setIsProcessingNoteAction(true);
       setFormValidationErrorMessage('');
-      resetNoteActionErrorMessage();
+      setActionErrorMessage('');
 
       await addNote({
         title: noteTitleInputValue,
@@ -86,8 +81,10 @@ export default function NotesListScreen({ navigation }: Props) {
 
       setIsAddNoteModalVisible(false);
       resetAddNoteForm();
-      await refreshNotesWithoutLoader();
     } catch (error) {
+      setActionErrorMessage('Unable to save note.');
+    } finally {
+      setIsProcessingNoteAction(false);
     }
   };
 
@@ -102,10 +99,10 @@ export default function NotesListScreen({ navigation }: Props) {
         style: 'destructive',
         onPress: async () => {
           try {
+            setActionErrorMessage('');
             await deleteNote(noteId);
-            await refreshNotesWithoutLoader();
           } catch (error) {
-            
+            setActionErrorMessage('Unable to delete note.');
           }
         },
       },
@@ -169,9 +166,9 @@ export default function NotesListScreen({ navigation }: Props) {
         </View>
       ) : null}
 
-      {noteActionErrorMessage && !isAddNoteModalVisible ? (
+      {actionErrorMessage && !isAddNoteModalVisible ? (
         <View style={styles.errorBannerBox}>
-          <Text style={styles.errorBannerText}>{noteActionErrorMessage}</Text>
+          <Text style={styles.errorBannerText}>{actionErrorMessage}</Text>
         </View>
       ) : null}
 
@@ -184,7 +181,7 @@ export default function NotesListScreen({ navigation }: Props) {
         <View style={styles.centerStateContainer}>
           <Text style={styles.errorText}>{notesErrorMessage}</Text>
 
-          <Pressable style={styles.retryButton} onPress={refetchNotes}>
+          <Pressable style={styles.retryButton} onPress={fetchNotes}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>
@@ -224,11 +221,13 @@ export default function NotesListScreen({ navigation }: Props) {
                 value={noteTitleInputValue}
                 onChangeText={(updatedTitleValue) => {
                   setNoteTitleInputValue(updatedTitleValue);
+
                   if (formValidationErrorMessage) {
                     setFormValidationErrorMessage('');
                   }
-                  if (noteActionErrorMessage) {
-                    resetNoteActionErrorMessage();
+
+                  if (actionErrorMessage) {
+                    setActionErrorMessage('');
                   }
                 }}
                 style={styles.textInputField}
@@ -247,11 +246,13 @@ export default function NotesListScreen({ navigation }: Props) {
               />
 
               {formValidationErrorMessage ? (
-                <Text style={styles.errorMessageText}>{formValidationErrorMessage}</Text>
+                <Text style={styles.errorMessageText}>
+                  {formValidationErrorMessage}
+                </Text>
               ) : null}
 
-              {noteActionErrorMessage ? (
-                <Text style={styles.errorMessageText}>{noteActionErrorMessage}</Text>
+              {actionErrorMessage ? (
+                <Text style={styles.errorMessageText}>{actionErrorMessage}</Text>
               ) : null}
 
               {isProcessingNoteAction ? (
