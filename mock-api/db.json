@@ -1,12 +1,6 @@
 {
   "notes": [
     {
-      "id": "1",
-      "title": "React Native Revision",
-      "description": "Core components, styling, lists, forms and feedback states needs to revise",
-      "createdAt": "2026-04-13 09:30 PM"
-    },
-    {
       "id": "2",
       "title": "Workout Plan",
       "description": "Butterfly, shoulder machine, back pulls and treadmill.",
@@ -35,6 +29,12 @@
       "description": "Note 3",
       "createdAt": "4/13/2026, 11:52:44 PM",
       "id": "cueRxgJydBY"
+    },
+    {
+      "title": "newwwwwwwwwwwwww",
+      "description": "asdjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
+      "createdAt": "4/14/2026, 10:18:59 PM",
+      "id": "_94F8MqPHEM"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
