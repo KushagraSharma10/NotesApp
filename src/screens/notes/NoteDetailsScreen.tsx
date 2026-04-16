@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import useNotesContext from '../../hooks/useNotesContext';
+import { notificationsService } from '../../services/notificationsService';
 import { NotesStackParamList } from '../../types/navigationTypes';
 
 type Props = NativeStackScreenProps<NotesStackParamList, 'NoteDetails'>;
@@ -25,11 +26,28 @@ export default function NoteDetailsScreen({ route, navigation }: Props) {
   } = useNotesContext();
 
   const [isDeletingNote, setIsDeletingNote] = useState(false);
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [actionErrorMessage, setActionErrorMessage] = useState('');
+  const [notificationSuccessMessage, setNotificationSuccessMessage] =
+    useState('');
 
   const selectedNoteItem = useMemo(() => {
     return notesList.find((singleNoteItem) => singleNoteItem.id === noteId) ?? null;
   }, [notesList, noteId]);
+
+  useEffect(() => {
+    if (!notificationSuccessMessage) {
+      return;
+    }
+
+    const notificationMessageTimer = setTimeout(() => {
+      setNotificationSuccessMessage('');
+    }, 2500);
+
+    return () => {
+      clearTimeout(notificationMessageTimer);
+    };
+  }, [notificationSuccessMessage]);
 
   const handleDeleteNote = () => {
     Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
@@ -54,6 +72,23 @@ export default function NoteDetailsScreen({ route, navigation }: Props) {
         },
       },
     ]);
+  };
+
+  const handleSendNotification = async () => {
+    if (!selectedNoteItem) {
+      return;
+    }
+
+    try {
+      setIsSendingNotification(true);
+      setActionErrorMessage('');
+      await notificationsService.showNoteNotification(selectedNoteItem);
+      setNotificationSuccessMessage('Notification sent successfully.');
+    } catch (error) {
+      setActionErrorMessage('Unable to send notification.');
+    } finally {
+      setIsSendingNotification(false);
+    }
   };
 
   if (isLoadingNotes) {
@@ -95,16 +130,32 @@ export default function NoteDetailsScreen({ route, navigation }: Props) {
         <Text style={styles.noteDate}>{selectedNoteItem.createdAt}</Text>
       </View>
 
+      {notificationSuccessMessage ? (
+        <View style={styles.successMessageBox}>
+          <Text style={styles.successMessageText}>
+            {notificationSuccessMessage}
+          </Text>
+        </View>
+      ) : null}
+
       {actionErrorMessage ? (
         <Text style={styles.inlineErrorText}>{actionErrorMessage}</Text>
       ) : null}
 
-      {isDeletingNote ? (
+      {isDeletingNote || isSendingNotification ? (
         <View style={styles.loadingRow}>
           <ActivityIndicator size="small" />
           <Text style={styles.loadingText}>Please wait...</Text>
         </View>
       ) : null}
+
+      <Pressable
+        style={styles.notifyButton}
+        onPress={handleSendNotification}
+        disabled={isSendingNotification}
+      >
+        <Text style={styles.buttonText}>Notify Me</Text>
+      </Pressable>
 
       <View style={styles.buttonRow}>
         <Pressable
@@ -156,6 +207,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#888888',
   },
+  notifyButton: {
+    backgroundColor: '#43a047',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
   buttonRow: {
     flexDirection: 'row',
   },
@@ -176,6 +233,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#ffffff',
     fontWeight: '700',
+  },
+  successMessageBox: {
+    backgroundColor: '#e8f5e9',
+    borderWidth: 1,
+    borderColor: '#a5d6a7',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  successMessageText: {
+    color: '#2e7d32',
+    fontWeight: '600',
   },
   centerStateContainer: {
     flex: 1,
