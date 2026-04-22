@@ -1,15 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import useNotesContext from '../../hooks/useNotesContext';
 import { NotesStackParamList } from '../../types/navigationTypes';
@@ -20,12 +23,7 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
   const noteId = route.params?.noteId;
   const isEditMode = useMemo(() => !!noteId, [noteId]);
 
-  const {
-    notesList,
-    isLoadingNotes,
-    addNote,
-    updateNote,
-  } = useNotesContext();
+  const { notesList, isLoadingNotes, addNote, updateNote } = useNotesContext();
 
   const selectedNoteItem = useMemo(() => {
     if (!noteId) {
@@ -37,6 +35,9 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
 
   const [noteTitleInputValue, setNoteTitleInputValue] = useState('');
   const [noteDescriptionInputValue, setNoteDescriptionInputValue] = useState('');
+  const [selectedImageUri, setSelectedImageUri] = useState('');
+  const [selectedImageFileName, setSelectedImageFileName] = useState('');
+  const [selectedImageType, setSelectedImageType] = useState('');
   const [formValidationErrorMessage, setFormValidationErrorMessage] = useState('');
   const [actionErrorMessage, setActionErrorMessage] = useState('');
   const [isProcessingNoteAction, setIsProcessingNoteAction] = useState(false);
@@ -52,7 +53,50 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
 
     setNoteTitleInputValue(selectedNoteItem.title);
     setNoteDescriptionInputValue(selectedNoteItem.description);
+    setSelectedImageUri(selectedNoteItem.imageUri || '');
+    setSelectedImageFileName(selectedNoteItem.imageFileName || '');
+    setSelectedImageType(selectedNoteItem.imageType || '');
   }, [isEditMode, selectedNoteItem]);
+
+  const handlePickImage = async () => {
+    try {
+      setActionErrorMessage('');
+
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 1,
+        quality: 0.8,
+      });
+
+      if (result.didCancel) {
+        return;
+      }
+
+      if (result.errorCode) {
+        setActionErrorMessage('Unable to pick image.');
+        return;
+      }
+
+      const selectedAsset = result.assets?.[0];
+
+      if (!selectedAsset?.uri) {
+        setActionErrorMessage('Selected image is invalid.');
+        return;
+      }
+
+      setSelectedImageUri(selectedAsset.uri);
+      setSelectedImageFileName(selectedAsset.fileName || '');
+      setSelectedImageType(selectedAsset.type || '');
+    } catch (error) {
+      setActionErrorMessage('Unable to pick image.');
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImageUri('');
+    setSelectedImageFileName('');
+    setSelectedImageType('');
+  };
 
   const handleSaveNote = async () => {
     if (!noteTitleInputValue.trim()) {
@@ -65,16 +109,18 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
       setFormValidationErrorMessage('');
       setActionErrorMessage('');
 
+      const notePayload = {
+        title: noteTitleInputValue,
+        description: noteDescriptionInputValue,
+        imageUri: selectedImageUri,
+        imageFileName: selectedImageFileName,
+        imageType: selectedImageType,
+      };
+
       if (isEditMode && noteId) {
-        await updateNote(noteId, {
-          title: noteTitleInputValue,
-          description: noteDescriptionInputValue,
-        });
+        await updateNote(noteId, notePayload);
       } else {
-        await addNote({
-          title: noteTitleInputValue,
-          description: noteDescriptionInputValue,
-        });
+        await addNote(notePayload);
       }
 
       navigation.goBack();
@@ -114,74 +160,106 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
         style={styles.screenContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.formCard}>
-          <Text style={styles.screenTitle}>
-            {isEditMode ? 'Edit Note' : 'Add Note'}
-          </Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContentContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.formCard}>
+            <Text style={styles.screenTitle}>
+              {isEditMode ? 'Edit Note' : 'Add Note'}
+            </Text>
 
-          <TextInput
-            placeholder="Enter note title"
-            value={noteTitleInputValue}
-            onChangeText={(updatedTitleValue) => {
-              setNoteTitleInputValue(updatedTitleValue);
+            <TextInput
+              placeholder="Enter note title"
+              value={noteTitleInputValue}
+              onChangeText={(updatedTitleValue) => {
+                setNoteTitleInputValue(updatedTitleValue);
 
-              if (formValidationErrorMessage) {
-                setFormValidationErrorMessage('');
-              }
+                if (formValidationErrorMessage) {
+                  setFormValidationErrorMessage('');
+                }
 
-              if (actionErrorMessage) {
-                setActionErrorMessage('');
-              }
-            }}
-            style={styles.textInputField}
-          />
+                if (actionErrorMessage) {
+                  setActionErrorMessage('');
+                }
+              }}
+              style={styles.textInputField}
+            />
 
-          <TextInput
-            placeholder="Enter note description"
-            value={noteDescriptionInputValue}
-            onChangeText={setNoteDescriptionInputValue}
-            style={[styles.textInputField, styles.descriptionInputField]}
-            multiline={true}
-            textAlignVertical="top"
-          />
+            <TextInput
+              placeholder="Enter note description"
+              value={noteDescriptionInputValue}
+              onChangeText={setNoteDescriptionInputValue}
+              style={[styles.textInputField, styles.descriptionInputField]}
+              multiline={true}
+              textAlignVertical="top"
+            />
 
-          {formValidationErrorMessage ? (
-            <Text style={styles.errorText}>{formValidationErrorMessage}</Text>
-          ) : null}
-
-          {actionErrorMessage ? (
-            <Text style={styles.errorText}>{actionErrorMessage}</Text>
-          ) : null}
-
-          {isProcessingNoteAction ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator size="small" />
-              <Text style={styles.loadingText}>
-                {isEditMode ? 'Updating note...' : 'Saving note...'}
+            <Pressable
+              style={styles.imagePickerButton}
+              onPress={handlePickImage}
+              disabled={isProcessingNoteAction}
+            >
+              <Text style={styles.imagePickerButtonText}>
+                {selectedImageUri ? 'Change Image' : 'Pick Image'}
               </Text>
+            </Pressable>
+
+            {selectedImageUri ? (
+              <View style={styles.selectedImageContainer}>
+                <Image
+                  source={{ uri: selectedImageUri }}
+                  style={styles.selectedImagePreview}
+                />
+
+                <Pressable
+                  style={styles.removeImageButton}
+                  onPress={handleRemoveImage}
+                  disabled={isProcessingNoteAction}
+                >
+                  <Text style={styles.removeImageButtonText}>Remove Image</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {formValidationErrorMessage ? (
+              <Text style={styles.errorText}>{formValidationErrorMessage}</Text>
+            ) : null}
+
+            {actionErrorMessage ? (
+              <Text style={styles.errorText}>{actionErrorMessage}</Text>
+            ) : null}
+
+            {isProcessingNoteAction ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" />
+                <Text style={styles.loadingText}>
+                  {isEditMode ? 'Updating note...' : 'Saving note...'}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => navigation.goBack()}
+                disabled={isProcessingNoteAction}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.saveButton}
+                onPress={handleSaveNote}
+                disabled={isProcessingNoteAction}
+              >
+                <Text style={styles.saveButtonText}>
+                  {isEditMode ? 'Update' : 'Save'}
+                </Text>
+              </Pressable>
             </View>
-          ) : null}
-
-          <View style={styles.buttonRow}>
-            <Pressable
-              style={styles.cancelButton}
-              onPress={() => navigation.goBack()}
-              disabled={isProcessingNoteAction}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.saveButton}
-              onPress={handleSaveNote}
-              disabled={isProcessingNoteAction}
-            >
-              <Text style={styles.saveButtonText}>
-                {isEditMode ? 'Update' : 'Save'}
-              </Text>
-            </Pressable>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -192,6 +270,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f4f6f8',
     padding: 16,
+  },
+  scrollContentContainer: {
+    paddingBottom: 24,
   },
   centerStateContainer: {
     flex: 1,
@@ -230,6 +311,36 @@ const styles = StyleSheet.create({
   },
   descriptionInputField: {
     minHeight: 120,
+  },
+  imagePickerButton: {
+    backgroundColor: '#6a1b9a',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 14,
+  },
+  imagePickerButtonText: {
+    textAlign: 'center',
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  selectedImageContainer: {
+    marginBottom: 14,
+  },
+  selectedImagePreview: {
+    width: '100%',
+    height: 220,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  removeImageButton: {
+    backgroundColor: '#fdecea',
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  removeImageButtonText: {
+    textAlign: 'center',
+    color: '#d32f2f',
+    fontWeight: '600',
   },
   errorText: {
     color: '#d32f2f',
