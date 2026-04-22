@@ -4,37 +4,64 @@
       "id": "2",
       "title": "Workout Plan",
       "description": "Butterfly, shoulder machine, back pulls and treadmill.",
-      "createdAt": "2026-04-13 08:10 PM"
+      "createdAt": "2026-04-13 08:10 PM",
+      "imageUri": "file:///data/user/0/com.notesapp/cache/rn_image_picker_lib_temp_5b0f81bd-0e6f-4ba3-95a9-82930818edaa.jpg",
+      "imageFileName": "33.jpg",
+      "imageType": "image/jpeg"
     },
     {
       "id": "3",
       "title": "Shopping List",
       "description": "Milk, bread, fruits and peanut butter.",
-      "createdAt": "2026-04-13 07:05 PM"
+      "createdAt": "2026-04-13 07:05 PM",
+      "imageUri": "",
+      "imageFileName": "",
+      "imageType": ""
     },
     {
       "title": "asds",
       "description": "asdas",
       "createdAt": "4/13/2026, 11:38:44 PM",
-      "id": "zwKFuQR0UHE"
+      "id": "zwKFuQR0UHE",
+      "imageUri": "",
+      "imageFileName": "",
+      "imageType": ""
     },
     {
       "title": "Random 123",
       "description": "Adding this note for tommorrow",
       "createdAt": "4/13/2026, 11:42:15 PM",
-      "id": "c8oZIf-aB3c"
+      "id": "c8oZIf-aB3c",
+      "imageUri": "",
+      "imageFileName": "",
+      "imageType": ""
     },
     {
       "title": "Note 2",
       "description": "Note 3",
       "createdAt": "4/13/2026, 11:52:44 PM",
-      "id": "cueRxgJydBY"
+      "id": "cueRxgJydBY",
+      "imageUri": "",
+      "imageFileName": "",
+      "imageType": ""
     },
     {
       "title": "newwwwwwwwwwwwww",
       "description": "asdjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
       "createdAt": "4/14/2026, 10:18:59 PM",
-      "id": "_94F8MqPHEM"
+      "id": "_94F8MqPHEM",
+      "imageUri": "",
+      "imageFileName": "",
+      "imageType": ""
+    },
+    {
+      "title": "asdsad",
+      "description": "asdasdas",
+      "createdAt": "4/22/2026, 11:08:37 PM",
+      "imageUri": "",
+      "imageFileName": "",
+      "imageType": "",
+      "id": "1voiAaF1ixA"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

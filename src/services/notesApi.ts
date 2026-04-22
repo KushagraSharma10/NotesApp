@@ -32,6 +32,9 @@ export const notesApi = {
         title: noteFormValues.title.trim(),
         description: noteFormValues.description.trim(),
         createdAt: new Date().toLocaleString(),
+        imageUri: noteFormValues.imageUri || '',
+imageFileName: noteFormValues.imageFileName || '',
+imageType: noteFormValues.imageType || '',
       }),
     });
 
@@ -40,8 +43,8 @@ export const notesApi = {
   },
 
   async updateNote(noteId: string, noteFormValues: NoteFormValues): Promise<NoteItem> {
-    const existingNote = await this.getNoteById(noteId);
-
+    const existingNote = await notesApi.getNoteById(noteId);
+  
     const response = await fetch(`${API_BASE_URL}/notes/${noteId}`, {
       method: 'PUT',
       headers: {
@@ -51,9 +54,12 @@ export const notesApi = {
         ...existingNote,
         title: noteFormValues.title.trim(),
         description: noteFormValues.description.trim(),
+        imageUri: noteFormValues.imageUri || '',
+        imageFileName: noteFormValues.imageFileName || '',
+        imageType: noteFormValues.imageType || '',
       }),
     });
-
+  
     const updatedNote = await parseJsonResponse(response);
     return updatedNote;
   },
