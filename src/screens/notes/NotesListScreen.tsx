@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -16,7 +17,8 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import useNotesContext from '../../hooks/useNotesContext';
-import { NoteItem, NotesStackParamList } from '../../types/navigationTypes';
+import { NoteItem } from '../../types/notesTypes';
+import { NotesStackParamList } from '../../types/navigationTypes';
 
 type Props = NativeStackScreenProps<NotesStackParamList, 'NotesList'>;
 
@@ -77,6 +79,9 @@ export default function NotesListScreen({ navigation }: Props) {
       await addNote({
         title: noteTitleInputValue,
         description: noteDescriptionInputValue,
+        imageUri: '',
+        imageFileName: '',
+        imageType: '',
       });
 
       setIsAddNoteModalVisible(false);
@@ -115,6 +120,10 @@ export default function NotesListScreen({ navigation }: Props) {
         <Pressable
           onPress={() => navigation.navigate('NoteDetails', { noteId: item.id })}
         >
+          {item.imageUri ? (
+            <Image source={{ uri: item.imageUri }} style={styles.noteThumbnail} />
+          ) : null}
+
           <Text style={styles.noteTitle}>{item.title}</Text>
 
           <Text style={styles.noteDescription} numberOfLines={2}>
@@ -359,6 +368,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
+  },
+  noteThumbnail: {
+    width: '100%',
+    height: 140,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   noteTitle: {
     fontSize: 18,

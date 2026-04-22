@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -18,12 +19,8 @@ type Props = NativeStackScreenProps<NotesStackParamList, 'NoteDetails'>;
 export default function NoteDetailsScreen({ route, navigation }: Props) {
   const { noteId } = route.params;
 
-  const {
-    notesList,
-    isLoadingNotes,
-    notesErrorMessage,
-    deleteNote,
-  } = useNotesContext();
+  const { notesList, isLoadingNotes, notesErrorMessage, deleteNote } =
+    useNotesContext();
 
   const [isDeletingNote, setIsDeletingNote] = useState(false);
   const [isSendingNotification, setIsSendingNotification] = useState(false);
@@ -123,6 +120,13 @@ export default function NoteDetailsScreen({ route, navigation }: Props) {
       <View style={styles.noteCard}>
         <Text style={styles.noteTitle}>{selectedNoteItem.title}</Text>
 
+        {selectedNoteItem.imageUri ? (
+          <Image
+            source={{ uri: selectedNoteItem.imageUri }}
+            style={styles.noteImage}
+          />
+        ) : null}
+
         <Text style={styles.noteDescription}>
           {selectedNoteItem.description || 'No description added'}
         </Text>
@@ -196,6 +200,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111111',
     marginBottom: 12,
+  },
+  noteImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   noteDescription: {
     fontSize: 16,

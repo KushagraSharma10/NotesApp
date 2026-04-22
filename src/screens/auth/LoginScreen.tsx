@@ -35,7 +35,6 @@ export default function LoginScreen() {
       setLocalValidationErrorMessage('');
       await signIn(userNameInputValue, passwordInputValue);
     } catch (error) {
-      // Context state already handles error message
     }
   };
 
