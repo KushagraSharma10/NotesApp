@@ -1,9 +1,21 @@
 import { API_BASE_URL } from './api';
 import { NoteFormValues, NoteItem } from '../types/notesTypes';
 
-async function parseJsonResponse(response: Response) {
+async function parseJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    let serverErrorMessage = '';
+
+    try {
+      const errorResponse = await response.json();
+      serverErrorMessage =
+        errorResponse?.message || errorResponse?.error || '';
+    } catch (error) {
+      serverErrorMessage = '';
+    }
+
+    throw new Error(
+      serverErrorMessage || `Request failed with status ${response.status}`,
+    );
   }
 
   return response.json();
@@ -12,13 +24,13 @@ async function parseJsonResponse(response: Response) {
 export const notesApi = {
   async getNotes(): Promise<NoteItem[]> {
     const response = await fetch(`${API_BASE_URL}/notes`);
-    const notesList = await parseJsonResponse(response);
+    const notesList = await parseJsonResponse<NoteItem[]>(response);
     return notesList;
   },
 
   async getNoteById(noteId: string): Promise<NoteItem> {
     const response = await fetch(`${API_BASE_URL}/notes/${noteId}`);
-    const noteItem = await parseJsonResponse(response);
+    const noteItem = await parseJsonResponse<NoteItem>(response);
     return noteItem;
   },
 
@@ -33,18 +45,21 @@ export const notesApi = {
         description: noteFormValues.description.trim(),
         createdAt: new Date().toLocaleString(),
         imageUri: noteFormValues.imageUri || '',
-imageFileName: noteFormValues.imageFileName || '',
-imageType: noteFormValues.imageType || '',
+        imageFileName: noteFormValues.imageFileName || '',
+        imageType: noteFormValues.imageType || '',
       }),
     });
 
-    const createdNote = await parseJsonResponse(response);
+    const createdNote = await parseJsonResponse<NoteItem>(response);
     return createdNote;
   },
 
-  async updateNote(noteId: string, noteFormValues: NoteFormValues): Promise<NoteItem> {
+  async updateNote(
+    noteId: string,
+    noteFormValues: NoteFormValues,
+  ): Promise<NoteItem> {
     const existingNote = await notesApi.getNoteById(noteId);
-  
+
     const response = await fetch(`${API_BASE_URL}/notes/${noteId}`, {
       method: 'PUT',
       headers: {
@@ -59,8 +74,8 @@ imageType: noteFormValues.imageType || '',
         imageType: noteFormValues.imageType || '',
       }),
     });
-  
-    const updatedNote = await parseJsonResponse(response);
+
+    const updatedNote = await parseJsonResponse<NoteItem>(response);
     return updatedNote;
   },
 

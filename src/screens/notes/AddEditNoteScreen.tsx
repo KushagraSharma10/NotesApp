@@ -16,6 +16,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import useNotesContext from '../../hooks/useNotesContext';
 import { NotesStackParamList } from '../../types/navigationTypes';
+import { getReadableErrorMessage, logError } from '../../utils/errorUtils';
 
 type Props = NativeStackScreenProps<NotesStackParamList, 'AddEditNote'>;
 
@@ -73,14 +74,16 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
       }
 
       if (result.errorCode) {
-        setActionErrorMessage('Unable to pick image.');
+        setActionErrorMessage(
+          result.errorMessage || 'Unable to open image picker. Please try again.',
+        );
         return;
       }
 
       const selectedAsset = result.assets?.[0];
 
       if (!selectedAsset?.uri) {
-        setActionErrorMessage('Selected image is invalid.');
+        setActionErrorMessage('Selected image could not be used.');
         return;
       }
 
@@ -88,7 +91,14 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
       setSelectedImageFileName(selectedAsset.fileName || '');
       setSelectedImageType(selectedAsset.type || '');
     } catch (error) {
-      setActionErrorMessage('Unable to pick image.');
+      logError(error, 'AddEditNoteScreen.handlePickImage');
+
+      setActionErrorMessage(
+        getReadableErrorMessage(
+          error,
+          'Unable to open image picker. Please try again.',
+        ),
+      );
     }
   };
 
@@ -125,8 +135,15 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
 
       navigation.goBack();
     } catch (error) {
+      logError(error, 'AddEditNoteScreen.handleSaveNote');
+
       setActionErrorMessage(
-        isEditMode ? 'Unable to update note.' : 'Unable to save note.',
+        getReadableErrorMessage(
+          error,
+          isEditMode
+            ? 'Unable to update note. Please try again.'
+            : 'Unable to save note. Please try again.',
+        ),
       );
     } finally {
       setIsProcessingNoteAction(false);
@@ -184,6 +201,7 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
                 }
               }}
               style={styles.textInputField}
+              accessibilityLabel="Note title input"
             />
 
             <TextInput
@@ -193,12 +211,17 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
               style={[styles.textInputField, styles.descriptionInputField]}
               multiline={true}
               textAlignVertical="top"
+              accessibilityLabel="Note description input"
             />
 
             <Pressable
               style={styles.imagePickerButton}
               onPress={handlePickImage}
               disabled={isProcessingNoteAction}
+              accessibilityRole="button"
+              accessibilityLabel={
+                selectedImageUri ? 'Change selected note image' : 'Pick image for note'
+              }
             >
               <Text style={styles.imagePickerButtonText}>
                 {selectedImageUri ? 'Change Image' : 'Pick Image'}
@@ -210,12 +233,16 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
                 <Image
                   source={{ uri: selectedImageUri }}
                   style={styles.selectedImagePreview}
+                  resizeMode="cover"
+                  accessibilityLabel="Selected note image preview"
                 />
 
                 <Pressable
                   style={styles.removeImageButton}
                   onPress={handleRemoveImage}
                   disabled={isProcessingNoteAction}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove selected image"
                 >
                   <Text style={styles.removeImageButtonText}>Remove Image</Text>
                 </Pressable>
@@ -244,6 +271,8 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
                 style={styles.cancelButton}
                 onPress={() => navigation.goBack()}
                 disabled={isProcessingNoteAction}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel note changes"
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </Pressable>
@@ -252,6 +281,8 @@ export default function AddEditNoteScreen({ route, navigation }: Props) {
                 style={styles.saveButton}
                 onPress={handleSaveNote}
                 disabled={isProcessingNoteAction}
+                accessibilityRole="button"
+                accessibilityLabel={isEditMode ? 'Update note' : 'Save note'}
               >
                 <Text style={styles.saveButtonText}>
                   {isEditMode ? 'Update' : 'Save'}

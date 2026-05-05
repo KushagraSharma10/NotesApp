@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useEffect, useReducer } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getReadableErrorMessage, logError } from '../utils/errorUtils';
 
 type AuthState = {
   isCheckingAuth: boolean;
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         payload: { userName: parsedAuthSession.userName },
       });
     } catch (error) {
+      logError(error, 'AuthContext.loadStoredAuthSession');
       dispatch({ type: 'SET_SIGNED_OUT' });
     }
   }, []);
@@ -105,13 +107,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const trimmedPassword = passwordValue.trim();
 
     if (!trimmedUserName) {
-      dispatch({ type: 'SET_AUTH_ERROR', payload: 'Username is required.' });
-      throw new Error('Username is required.');
+      const errorMessage = 'Username is required.';
+      dispatch({ type: 'SET_AUTH_ERROR', payload: errorMessage });
+      throw new Error(errorMessage);
     }
 
     if (!trimmedPassword) {
-      dispatch({ type: 'SET_AUTH_ERROR', payload: 'Password is required.' });
-      throw new Error('Password is required.');
+      const errorMessage = 'Password is required.';
+      dispatch({ type: 'SET_AUTH_ERROR', payload: errorMessage });
+      throw new Error(errorMessage);
     }
 
     try {
@@ -131,7 +135,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         payload: { userName: trimmedUserName },
       });
     } catch (error) {
-      dispatch({ type: 'SET_AUTH_ERROR', payload: 'Unable to sign in.' });
+      logError(error, 'AuthContext.signIn');
+
+      dispatch({
+        type: 'SET_AUTH_ERROR',
+        payload: getReadableErrorMessage(
+          error,
+          'Unable to sign in. Please try again.',
+        ),
+      });
+
       throw error;
     }
   }, []);
@@ -142,7 +155,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
       dispatch({ type: 'SET_SIGNED_OUT' });
     } catch (error) {
-      dispatch({ type: 'SET_AUTH_ERROR', payload: 'Unable to sign out.' });
+      logError(error, 'AuthContext.signOut');
+
+      dispatch({
+        type: 'SET_AUTH_ERROR',
+        payload: getReadableErrorMessage(
+          error,
+          'Unable to sign out. Please try again.',
+        ),
+      });
+
       throw error;
     }
   }, []);
